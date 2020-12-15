@@ -1,10 +1,11 @@
 package auth
 
 import (
+	"github.com/chanbakjsd/gotrix"
+	"github.com/chanbakjsd/gotrix/matrix"
 	"github.com/diamondburned/cchat"
 	"github.com/diamondburned/cchat/text"
 	"github.com/pkg/errors"
-	"maunium.net/go/mautrix"
 )
 
 type HomeServer struct{}
@@ -19,7 +20,7 @@ func (HomeServer) Description() text.Rich {
 
 func (HomeServer) AuthenticateForm() []cchat.AuthenticateEntry {
 	return []cchat.AuthenticateEntry{
-		cchat.AuthenticateEntry{
+		{
 			Name:        "Address",
 			Placeholder: "matrix.org",
 			Description: "The domain or IP associated with your homeserver.",
@@ -28,23 +29,23 @@ func (HomeServer) AuthenticateForm() []cchat.AuthenticateEntry {
 }
 
 func (HomeServer) Authenticate(s []string) (cchat.Session, cchat.AuthenticateError) {
-	client, err := mautrix.NewClient(s[0], "", "")
+	client, err := gotrix.New(s[0])
 	if err != nil {
 		return nil, cchat.WrapAuthenticateError(errors.Wrap(err, "cannot connect to homeserver"))
 	}
-	flows, err := client.GetLoginFlows()
+	methods, err := client.GetLoginMethods()
 	if err != nil {
 		return nil, cchat.WrapAuthenticateError(errors.Wrap(err, "cannot fetch login methods"))
 	}
 
 	supportedMethods := make([]cchat.Authenticator, 0, 2)
-	for _, v := range flows.Flows {
-		switch v.Type {
-		case mautrix.AuthTypePassword:
+	for _, v := range methods {
+		switch v {
+		case matrix.LoginPassword:
 			supportedMethods = append(supportedMethods, PasswordAuth{
 				Client: client,
 			})
-		case mautrix.AuthTypeToken:
+		case matrix.LoginToken:
 			supportedMethods = append(supportedMethods, TokenAuth{
 				Client: client,
 			})

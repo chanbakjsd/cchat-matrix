@@ -1,13 +1,15 @@
 package auth
 
 import (
+	"github.com/chanbakjsd/gotrix"
 	"github.com/diamondburned/cchat"
 	"github.com/diamondburned/cchat/text"
-	"maunium.net/go/mautrix"
+
+	"github.com/chanbakjsd/cchat-matrix/internal/session"
 )
 
 type PasswordAuth struct {
-	Client *mautrix.Client
+	Client *gotrix.Client
 }
 
 func (PasswordAuth) Name() text.Rich {
@@ -20,11 +22,11 @@ func (PasswordAuth) Description() text.Rich {
 
 func (PasswordAuth) AuthenticateForm() []cchat.AuthenticateEntry {
 	return []cchat.AuthenticateEntry{
-		cchat.AuthenticateEntry{
+		{
 			Name:        "User ID",
 			Description: "The user ID you entered when you registered on your Matrix homeserver.",
 		},
-		cchat.AuthenticateEntry{
+		{
 			Name:   "Password",
 			Secret: true,
 		},
@@ -35,15 +37,14 @@ func (p PasswordAuth) Authenticate(s []string) (cchat.Session, cchat.Authenticat
 	username := s[0]
 	password := s[1]
 
-	return login(p.Client, &mautrix.ReqLogin{
-		Type: mautrix.AuthTypePassword,
-		Identifier: mautrix.UserIdentifier{
-			Type: mautrix.IdentifierTypeUser,
-			User: username,
-		},
-		Password:                 password,
-		InitialDeviceDisplayName: "cchat-matrix",
+	err := p.Client.LoginPassword(username, password)
+	if err != nil {
+		return nil, processLoginErrors(err)
+	}
 
-		StoreCredentials: true,
-	})
+	sess, err := session.New(p.Client)
+	if err != nil {
+		return nil, cchat.WrapAuthenticateError(err)
+	}
+	return sess, nil
 }

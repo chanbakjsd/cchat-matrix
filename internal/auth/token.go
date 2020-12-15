@@ -1,13 +1,15 @@
 package auth
 
 import (
+	"github.com/chanbakjsd/gotrix"
 	"github.com/diamondburned/cchat"
 	"github.com/diamondburned/cchat/text"
-	"maunium.net/go/mautrix"
+
+	"github.com/chanbakjsd/cchat-matrix/internal/session"
 )
 
 type TokenAuth struct {
-	Client        *mautrix.Client
+	Client        *gotrix.Client
 	TransactionID string
 }
 
@@ -21,7 +23,7 @@ func (TokenAuth) Description() text.Rich {
 
 func (TokenAuth) AuthenticateForm() []cchat.AuthenticateEntry {
 	return []cchat.AuthenticateEntry{
-		cchat.AuthenticateEntry{
+		{
 			Name:   "Token",
 			Secret: true,
 		},
@@ -31,11 +33,14 @@ func (TokenAuth) AuthenticateForm() []cchat.AuthenticateEntry {
 func (p TokenAuth) Authenticate(s []string) (cchat.Session, cchat.AuthenticateError) {
 	token := s[0]
 
-	return login(p.Client, &mautrix.ReqLogin{
-		Type:                     mautrix.AuthTypeToken,
-		Token:                    token,
-		InitialDeviceDisplayName: "cchat-matrix",
+	err := p.Client.LoginToken(token)
+	if err != nil {
+		return nil, processLoginErrors(err)
+	}
 
-		StoreCredentials: true,
-	})
+	sess, err := session.New(p.Client)
+	if err != nil {
+		return nil, cchat.WrapAuthenticateError(err)
+	}
+	return sess, nil
 }

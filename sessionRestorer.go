@@ -1,9 +1,9 @@
 package matrix
 
 import (
+	"github.com/chanbakjsd/gotrix"
+	"github.com/chanbakjsd/gotrix/matrix"
 	"github.com/diamondburned/cchat"
-	"maunium.net/go/mautrix"
-	"maunium.net/go/mautrix/id"
 
 	"github.com/chanbakjsd/cchat-matrix/internal/session"
 )
@@ -11,10 +11,10 @@ import (
 type SessionRestorer struct{}
 
 func (SessionRestorer) RestoreSession(storage map[string]string) (cchat.Session, error) {
-	cli, err := mautrix.NewClient(storage["homeserver"], id.UserID(storage["userID"]), storage["accessToken"])
-	if err != nil {
-		return nil, err
-	}
+	cli, err := gotrix.New(storage["homeserver"])
+	// TODO: Fix this when there's a better API.
+	cli.UserID = matrix.UserID(storage["userID"])
+	cli.AccessToken = storage["accessToken"]
 
 	// Do a quick sanity check.
 	_, err = cli.Whoami()
@@ -23,5 +23,5 @@ func (SessionRestorer) RestoreSession(storage map[string]string) (cchat.Session,
 		return nil, err
 	}
 
-	return session.New(cli), nil
+	return session.New(cli)
 }

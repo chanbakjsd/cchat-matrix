@@ -1,24 +1,27 @@
 package session
 
 import (
+	"github.com/chanbakjsd/gotrix"
 	"github.com/diamondburned/cchat"
 	"github.com/diamondburned/cchat/text"
 	"github.com/diamondburned/cchat/utils/empty"
-	"maunium.net/go/mautrix"
 )
 
 type Session struct {
 	empty.Session
-	*mautrix.Client
+	*gotrix.Client
 	ShouldStop bool
 }
 
-func New(cli *mautrix.Client) cchat.Session {
+func New(cli *gotrix.Client) (cchat.Session, error) {
 	s := &Session{
 		Client: cli,
 	}
-	go s.Listen()
-	return s
+	err := s.Open()
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
 }
 
 func (s *Session) ID() cchat.ID {
@@ -30,23 +33,21 @@ func (s *Session) Name() text.Rich {
 }
 
 func (s *Session) AsIconer() cchat.Iconer {
-	//TODO stub
+	// TODO stub
 	return nil
 }
 
 func (s *Session) Servers(cchat.ServersContainer) error {
-	//TODO stub
+	// TODO stub
 	return nil
 }
 
 func (s *Session) Disconnect() error {
-	s.ShouldStop = true
-	s.StopSync()
-	return nil
+	return s.Close()
 }
 
 func (s *Session) AsCommander() cchat.Commander {
-	//TODO stub
+	// TODO stub
 	return nil
 }
 
@@ -56,9 +57,13 @@ func (s *Session) AsSessionSaver() cchat.SessionSaver {
 
 func (s *Session) SaveSession() map[string]string {
 	return map[string]string{
-		"homeserver":  s.HomeserverURL.String(),
+		"homeserver":  s.HomeServer,
 		"accessToken": s.AccessToken,
 		"deviceID":    string(s.DeviceID),
 		"userID":      string(s.UserID),
 	}
+}
+
+func (s *Session) Listen() {
+	s.Open()
 }
